@@ -180,3 +180,4 @@ products_vectorstore/
 
 # ignore diagnostics reports
 **/report.txt
+.gradle
