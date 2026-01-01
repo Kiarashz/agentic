@@ -10,8 +10,8 @@ class FrontierAgent(Agent):
     name = "Frontier Agent"
     color = Agent.YELLOW
 
-    MODEL = "deepseek-chat"
-    PREPROCESS_MODEL = "groq/openai/gpt-oss-20b"
+    MODEL = "openrouter/google/gemini-2.5-pro"
+    PREPROCESS_MODEL = "openrouter/openai/gpt-oss-20b"
 
     def __init__(self, collection):
         """
@@ -63,13 +63,17 @@ class FrontierAgent(Agent):
             {"role": "assistant", "content": "Price is $"},
         ]
 
-    def preprocess(self, item: str):
+    def preprocess(self, item: str, base_url: str, api_key: str) -> str:
         """
         Run the description through groq running locally to make it most suitable for RAG lookup
         """
         message = f"Reply with a 2-3 sentence summary of this product. This will be used to find similar products so it should be clear, concise, complete. Details:\n{item}"
         messages = [{"role": "user", "content": message}]
-        response = completion(model=self.PREPROCESS_MODEL, messages=messages)
+        response = completion(
+            api_key=api_key, 
+            base_url=base_url,
+            model=self.PREPROCESS_MODEL, 
+            messages=messages)
         return response.choices[0].message.content
 
     def find_similars(self, description: str):
@@ -95,7 +99,7 @@ class FrontierAgent(Agent):
         match = re.search(r"[-+]?\d*\.\d+|\d+", s)
         return float(match.group()) if match else 0.0
 
-    def price(self, description: str) -> float:
+    def price(self, description: str, base_url: str, api_key: str) -> float:
         """
         Make a call to OpenAI or DeepSeek to estimate the price of the described product,
         by looking up 5 similar products and including them in the prompt to give context
@@ -105,7 +109,13 @@ class FrontierAgent(Agent):
         documents, prices = self.find_similars(description)
         self.log(f"Frontier Agent is calling {self.MODEL} with 5 similar products")
         messages = self.messages_for(description, documents, prices)
-        response = completion(model=self.MODEL, messages=messages, max_tokens=8)
+        response = completion(
+            model=self.MODEL, 
+            messages=messages, 
+            max_tokens=16,
+            api_key=api_key,
+            base_url=base_url
+        )
         reply = response.choices[0].message.content
         result = self.get_price(reply)
         self.log(f"Frontier Agent completed - predicting ${result:.2f}")
