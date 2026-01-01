@@ -76,12 +76,12 @@ class FrontierAgent(Agent):
             messages=messages)
         return response.choices[0].message.content
 
-    def find_similars(self, description: str):
+    def find_similars(self, description: str, api_key: str, base_url: str   ):
         """
         Return a list of items similar to the given one by looking in the Chroma datastore
         """
         self.log(f"Frontier Agent is preprocessing with {self.PREPROCESS_MODEL}")
-        preprocessed = self.preprocess(description)
+        preprocessed = self.preprocess(item=description, api_key=api_key, base_url=base_url)
         self.log("Frontier Agent is vectorizing using all-MiniLM-L6-v2")
         vector = self.model.encode([preprocessed])
         self.log("Frontier Agent is performing a RAG search of Chroma to find similar products")
@@ -106,7 +106,7 @@ class FrontierAgent(Agent):
         :param description: a description of the product
         :return: an estimate of the price
         """
-        documents, prices = self.find_similars(description)
+        documents, prices = self.find_similars(description=description, api_key=api_key, base_url=base_url)
         self.log(f"Frontier Agent is calling {self.MODEL} with 5 similar products")
         messages = self.messages_for(description, documents, prices)
         response = completion(
